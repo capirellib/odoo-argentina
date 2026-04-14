@@ -19,6 +19,22 @@ class AccountPayment(models.Model):
         readonly=False,
         store=True,
     )
+    destination_currency_id = fields.Many2one(
+        "res.currency",
+        compute="_compute_destination_currency_id",
+        string="Destination Currency",
+        help="Debt currency (B)",
+    )
+    accounting_rate = fields.Float(
+        compute="_compute_accounting_rate",
+        string="Accounting Rate",
+        help="Rate A/C (Journal Currency / Company Currency)",
+    )
+    counterpart_rate = fields.Float(
+        compute="_compute_counterpart_rate",
+        string="Counterpart Rate",
+        help="Rate B/A (Debt Currency / Journal Currency)",
+    )
     withholdings_amount = fields.Monetary(
         compute="_compute_withholdings_amount",
         currency_field="destination_currency_id",
@@ -60,6 +76,30 @@ class AccountPayment(models.Model):
                 ._get_fiscal_position(address)
             )
 
+    @api.depends("currency_id", "counterpart_currency_id")
+    def _compute_destination_currency_id(self):
+        for rec in self:
+            rec.destination_currency_id = rec.counterpart_currency_id or rec.currency_id
+
+    @api.depends("amount", "amount_company_currency")
+    def _compute_accounting_rate(self):
+        for rec in self:
+            if rec.amount_company_currency:
+                rec.accounting_rate = rec.amount / rec.amount_company_currency
+            else:
+                rec.accounting_rate = 1.0
+
+    @api.depends("destination_currency_id", "currency_id", "counterpart_exchange_rate", "accounting_rate")
+    def _compute_counterpart_rate(self):
+        for rec in self:
+            if rec.destination_currency_id == rec.currency_id:
+                rec.counterpart_rate = 1.0
+            elif rec.counterpart_exchange_rate and rec.accounting_rate:
+                # C/B = (C/A) * (A/B) = (1/accounting_rate) / counterpart_rate
+                # counterpart_rate (B/A) = (1/accounting_rate) / (C/B)
+                rec.counterpart_rate = (1.0 / rec.accounting_rate) / rec.counterpart_exchange_rate
+            else:
+                rec.counterpart_rate = 1.0
     @api.constrains("l10n_ar_withholding_line_ids", "partner_id")
     def _check_partner_for_withholdings(self):
         for rec in self:

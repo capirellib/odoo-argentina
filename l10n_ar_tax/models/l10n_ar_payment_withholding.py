@@ -31,10 +31,9 @@ class l10nArPaymentWithholding(models.Model):
     # luego vemos de hacer que toda la logica este acá
     amount = fields.Monetary(compute="_compute_amount", store=True, readonly=False)  # C (ARS)
 
-    _uniq_line = models.Constraint(
-        "unique(tax_id, payment_id)",
-        "El impuesto de retención debe ser único por pago",
-    )
+    _sql_constraints = [
+        ("uniq_line", "unique(tax_id, payment_id)", "El impuesto de retención debe ser único por pago"),
+    ]
 
     @api.depends(
         "tax_id",

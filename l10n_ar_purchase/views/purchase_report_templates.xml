@@ -150,11 +150,13 @@
         </t>
 
         <!-- use column vat instead of taxes and only if vat discriminated -->
-        <xpath expr="//th[@name='th_taxes']/strong" position="replace">
+        <xpath expr="//th[@name='th_taxes']/*" position="replace">
             <strong>% VAT</strong>
         </xpath>
-        <xpath expr="//span[contains(@t-out, 'tax.tax_label for tax in line.tax_ids if tax.tax_label')]" position="replace">
-            <span t-out="', '.join([tax.tax_label for tax in line.tax_ids.filtered(lambda x: x.tax_group_id.l10n_ar_vat_afip_code) if tax.tax_label])"/>
+        <xpath expr="//span[contains(@t-out, 'line.taxes_id')]/parent::td" position="replace">
+            <td name="td_taxes" class="text-end">
+                <span t-out="', '.join([tax.tax_label for tax in line.taxes_id.filtered(lambda x: x.tax_group_id.l10n_ar_vat_afip_code) if tax.tax_label])"/>
+            </td>
         </xpath>
 
         <div id="informations" position="replace">

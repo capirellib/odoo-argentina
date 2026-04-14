@@ -96,3 +96,6 @@ Temporary Items
 ### macOS Patch ###
 # iCloud generated files
 *.icloud
+
+# ignore json files
+*.json
